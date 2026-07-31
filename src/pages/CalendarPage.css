@@ -1,0 +1,148 @@
+.calendar-container {
+  padding: 20px;
+  padding-bottom: 90px;
+  color: #fff;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.semester-box {
+  background-color: #1e1e1e;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #333;
+}
+
+.date-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-label {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: bold;
+}
+
+.date-input {
+  background-color: #121212;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.nav-btn {
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 6px;
+  font-weight: bold;
+}
+
+.legend-text {
+  color: #aaa;
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+  text-align: center;
+  font-weight: bold;
+  color: #888;
+}
+
+.week-header-cell {
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.empty-cell {
+  min-height: 75px;
+}
+
+.day-cell {
+  min-height: 75px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Dimmed look for dates outside the semester dates */
+.day-cell.out-of-range {
+  opacity: 0.45;
+  background-color: #141414 !important;
+  border-color: #222 !important;
+}
+
+/* Ring around today's date */
+.today-cell {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.day-num {
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.routine-label {
+  font-size: 0.6rem;
+  color: #ddd;
+  line-height: 1;
+}
+
+.status-tag {
+  font-size: 0.55rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.sticky-footer {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  background-color: #252526;
+  padding: 12px 20px;
+  text-align: center;
+  border-top: 1px solid #333;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+  font-size: 1.05rem;
+  z-index: 100;
+}
