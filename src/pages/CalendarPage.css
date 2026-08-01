@@ -1,148 +1,202 @@
+/* Container Layout */
 .calendar-container {
-  padding: 20px;
-  padding-bottom: 90px;
-  color: #fff;
-  max-width: 680px;
+  max-width: 800px;
   margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  padding-bottom: 90px; /* Space for sticky footer on mobile */
 }
 
+/* Semester Box */
 .semester-box {
-  background-color: #1e1e1e;
-  padding: 10px 14px;
-  border-radius: 8px;
   display: flex;
+  gap: 12px;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 16px;
+  background-color: #1e1e1e;
+  padding: 12px 16px;
+  border-radius: 8px;
   border: 1px solid #333;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .date-picker-group {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 200px;
 }
 
 .date-label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: #aaa;
-  font-weight: bold;
+  white-space: nowrap;
 }
 
 .date-input {
   background-color: #121212;
-  color: #fff;
   border: 1px solid #444;
-  padding: 4px 8px;
+  color: #fff;
+  padding: 6px 10px;
   border-radius: 4px;
   font-size: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Header & Navigation */
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.header-row h2 {
+  margin: 0;
+  font-size: 1.25rem;
 }
 
 .nav-btn {
-  background-color: #333;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
   color: #fff;
-  border: 1px solid #555;
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
-  margin-left: 6px;
   font-weight: bold;
+  font-size: 1rem;
+  margin-left: 6px;
+  transition: background 0.2s ease;
 }
 
-.legend-text {
-  color: #aaa;
-  font-size: 0.8rem;
-  margin-bottom: 16px;
-  line-height: 1.6;
+.nav-btn:hover {
+  background-color: #383838;
+}
+
+/* Grids */
+.week-grid, .month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
 }
 
 .week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-bottom: 6px;
-  text-align: center;
-  font-weight: bold;
-  color: #888;
+  margin-bottom: 8px;
 }
 
 .week-header-cell {
-  padding: 6px 0;
-  font-size: 0.9rem;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: #888;
+  padding: 4px 0;
 }
 
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
+/* Day Cells */
 .empty-cell {
-  min-height: 75px;
+  background: transparent;
 }
 
 .day-cell {
-  min-height: 75px;
-  padding: 6px;
-  border-radius: 8px;
-  border: 1px solid;
+  aspect-ratio: 1 / 1;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 4px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: center;
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
-  transition: all 0.2s ease-in-out;
+  transition: transform 0.1s ease, border-color 0.2s ease;
+  overflow: hidden;
 }
 
-/* Dimmed look for dates outside the semester dates */
-.day-cell.out-of-range {
-  opacity: 0.45;
-  background-color: #141414 !important;
-  border-color: #222 !important;
-}
-
-/* Ring around today's date */
-.today-cell {
-  outline: 2px solid #ffffff;
-  outline-offset: 2px;
+.day-cell:active {
+  transform: scale(0.96);
 }
 
 .day-num {
   font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  align-self: flex-start;
 }
 
 .routine-label {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   color: #ddd;
+  text-align: center;
   line-height: 1;
 }
 
 .status-tag {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   font-weight: bold;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
+.today-cell {
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.out-of-range {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Sticky Bottom Footer */
 .sticky-footer {
   position: fixed;
-  bottom: 60px;
+  bottom: 0;
   left: 0;
   right: 0;
-  background-color: #252526;
-  padding: 12px 20px;
-  text-align: center;
+  background-color: #181818;
   border-top: 1px solid #333;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-  font-weight: bold;
-  font-size: 1.05rem;
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 0.95rem;
   z-index: 100;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+}
+
+/* Mobile Responsiveness Adjustments */
+@media (max-width: 600px) {
+  .calendar-container {
+    padding: 10px;
+    padding-bottom: 80px;
+  }
+
+  .week-grid, .month-grid {
+    gap: 4px;
+  }
+
+  .day-cell {
+    padding: 2px;
+  }
+
+  .day-num {
+    font-size: 0.75rem;
+  }
+
+  .routine-label {
+    font-size: 0.55rem;
+  }
+
+  .status-tag {
+    font-size: 0.5rem;
+  }
+
+  .header-row h2 {
+    font-size: 1.1rem;
+  }
 }
