@@ -200,3 +200,32 @@
     font-size: 1.1rem;
   }
 }
+
+/* Update the text element class inside your calendar day box */
+.status-text,
+.calendar-day-status {
+  white-space: pre-line !important; /* Converts \n into a physical line break */
+  word-break: break-word !important; /* Prevents overflow */
+  text-overflow: clip !important;    /* Removes trailing '...' */
+  line-height: 1.1 !important;       /* Keeps two lines tightly stacked */
+  text-align: center;
+}
+/* Find the .status-tag class or whatever class handles your status text */
+.status-tag {
+  white-space: pre-wrap;    /* Allows text to wrap to a new line */
+  word-break: break-word;   /* Breaks long words if necessary */
+  line-height: 1.1;         /* Keeps lines tight */
+  text-align: center;
+  font-size: 0.7rem;        /* Slightly smaller to fit two lines */
+  display: block;           /* Ensures it behaves like a block element */
+  margin-top: 2px;
+}
+.status-tag {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.1;
+  text-align: center;
+  font-size: 0.7rem;
+  display: block;
+  margin-top: 2px;
+}

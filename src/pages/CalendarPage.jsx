@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { saveDateOverride, fetchUserOverrides, copyExamsAndHolidaysFromUser } from '../utils/calendarApi';
 import SaturdayRoutineModal from '../components/SaturdayRoutineModal';
 import AuthModal from '../components/AuthModal';
 import './CalendarPage.css';
@@ -7,12 +8,17 @@ import './CalendarPage.css';
 export default function CalendarPage() {
   const [user, setUser] = useState(null);
   const [data, setData] = useState({ semester: { startDate: '', endDate: '' }, overrides: {} });
-  
+
   // Modal selection state
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isSatModalOpen, setIsSatModalOpen] = useState(false);
+
+  // Copy modal state
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+  const [sourceUserId, setSourceUserId] = useState('');
+  const [copyLoading, setCopyLoading] = useState(false);
 
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -23,7 +29,7 @@ export default function CalendarPage() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const monthNames = [
-    "January", "February", "March", "April", "May", "June", 
+    "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
 
@@ -49,7 +55,7 @@ export default function CalendarPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Fetch user data from Supabase DB
+  // 2. Fetch user data from Supabase DB (Semester dates & overrides)
   const fetchUserData = async (userId) => {
     const { data: userRow, error } = await supabase
       .from('user_data')
@@ -58,26 +64,27 @@ export default function CalendarPage() {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching data:', error.message);
+      console.error('Error fetching user semester data:', error.message);
     }
 
-    if (userRow && userRow.data) {
-      setData(userRow.data);
-    } else {
-      const initialData = { semester: { startDate: '', endDate: '' }, overrides: {} };
-      setData(initialData);
-    }
+    const overrides = await fetchUserOverrides(userId);
+    const semesterData = userRow?.data?.semester || { startDate: '', endDate: '' };
+
+    setData({
+      semester: semesterData,
+      overrides: overrides || {}
+    });
   };
 
-  // 3. Save updated data to Supabase DB (or local state if logged out)
+  // 3. Save semester dates to Supabase DB (or local state if logged out)
   const saveUserData = async (newData) => {
     setData(newData);
     if (user) {
       const { error } = await supabase
         .from('user_data')
-        .upsert({ id: user.id, data: newData, updated_at: new Date() });
+        .upsert({ id: user.id, data: { semester: newData.semester }, updated_at: new Date() });
 
-      if (error) console.error('Error saving data:', error.message);
+      if (error) console.error('Error saving semester data:', error.message);
     }
   };
 
@@ -96,14 +103,14 @@ export default function CalendarPage() {
     saveUserData(updatedData);
   };
 
-  // Open modal on day click instead of cycling
+  // Open modal on day click
   const handleDayClick = (dateStr, dayOfWeek) => {
     setSelectedDate(dateStr);
     setSelectedDayOfWeek(dayOfWeek);
     setIsStatusModalOpen(true);
   };
 
-  const applyStatusChange = (newStatus) => {
+  const applyStatusChange = async (newStatus) => {
     setIsStatusModalOpen(false);
 
     if (selectedDayOfWeek === 6 && newStatus === 'WORKING') {
@@ -111,6 +118,7 @@ export default function CalendarPage() {
       return;
     }
 
+    // 1. Update local UI state
     const updatedData = {
       ...data,
       overrides: {
@@ -118,10 +126,15 @@ export default function CalendarPage() {
         [selectedDate]: { status: newStatus, routineDay: null }
       }
     };
-    saveUserData(updatedData);
+    setData(updatedData);
+
+    // 2. Persist override to Supabase calendar_overrides table
+    if (user) {
+      await saveDateOverride(user.id, selectedDate, newStatus, null);
+    }
   };
 
-  const handleSaturdayRoutineSelect = (assignedRoutine) => {
+  const handleSaturdayRoutineSelect = async (assignedRoutine) => {
     const updatedData = {
       ...data,
       overrides: {
@@ -129,8 +142,39 @@ export default function CalendarPage() {
         [selectedDate]: { status: 'WORKING', routineDay: assignedRoutine }
       }
     };
-    saveUserData(updatedData);
+    setData(updatedData);
+
+    if (user) {
+      await saveDateOverride(user.id, selectedDate, 'WORKING', assignedRoutine);
+    }
+
     setIsSatModalOpen(false);
+  };
+
+  // Handler to copy Exams & Holidays from another user
+  const handleCopyExamsAndHolidays = async () => {
+    if (!user) {
+      alert('Please log in to import data.');
+      return;
+    }
+    if (!sourceUserId.trim()) {
+      alert('Please enter a valid User ID.');
+      return;
+    }
+
+    setCopyLoading(true);
+    const result = await copyExamsAndHolidaysFromUser(user.id, sourceUserId.trim());
+    setCopyLoading(false);
+
+    if (result.success) {
+      alert(`Successfully imported ${result.count} exam/holiday entries!`);
+      setIsCopyModalOpen(false);
+      setSourceUserId('');
+      // Refresh local calendar state to display copied items
+      fetchUserData(user.id);
+    } else {
+      alert(`Failed to import data: ${result.error}`);
+    }
   };
 
   const calculateRemainingWorkingDays = () => {
@@ -207,8 +251,8 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Semester Inputs */}
-      <div className="semester-box">
+      {/* Semester Inputs & Import Action */}
+      <div className="semester-box" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="date-picker-group">
           <label className="date-label">Sem Start:</label>
           <input
@@ -227,6 +271,25 @@ export default function CalendarPage() {
             className="date-input"
           />
         </div>
+
+        {user && (
+          <button
+            onClick={() => setIsCopyModalOpen(true)}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#1e3438',
+              color: '#00bcd4',
+              border: '1px solid #00bcd4',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.8rem',
+              fontWeight: 'bold',
+              height: '38px'
+            }}
+          >
+            📋 Import Exams/Holidays
+          </button>
+        )}
       </div>
 
       {/* Month Navigation */}
@@ -280,7 +343,7 @@ export default function CalendarPage() {
               {isInsideSem && label && <span className="routine-label">{label}</span>}
               {isInsideSem && (
                 <span className="status-tag" style={{ color: borderColor }}>
-                  {status.replace('_', ' ')}
+                  {status === 'MEDICAL_LEAVE' ? 'MEDICAL\nLEAVE' : status.replace('_', ' ')}
                 </span>
               )}
             </div>
@@ -293,7 +356,7 @@ export default function CalendarPage() {
         <span>📊 Remaining Working Days: <strong style={{ color: '#4CAF50', fontSize: '1.2rem' }}>{calculateRemainingWorkingDays()}</strong></span>
       </div>
 
-      {/* Explicit Status Selection Modal */}
+      {/* Status Selection Modal */}
       {isStatusModalOpen && (
         <div style={modalStyles.overlay}>
           <div style={modalStyles.modal}>
@@ -307,6 +370,50 @@ export default function CalendarPage() {
               <button style={{ ...modalStyles.btn, backgroundColor: '#1e2c38', color: '#2196F3', borderColor: '#2196F3' }} onClick={() => applyStatusChange('MEDICAL_LEAVE')}>Medical Leave</button>
             </div>
             <button style={{ ...modalStyles.btn, marginTop: '12px', backgroundColor: '#333', color: '#aaa', borderColor: '#555' }} onClick={() => setIsStatusModalOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Exams/Holidays Modal */}
+      {isCopyModalOpen && (
+        <div style={modalStyles.overlay}>
+          <div style={{ ...modalStyles.modal, width: '320px' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: '#00bcd4' }}>Import Exams & Holidays</h3>
+            <p style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '15px' }}>
+              Paste the User ID of the student whose Exam and Holiday schedule you want to copy into your calendar.
+            </p>
+            <input
+              type="text"
+              placeholder="Enter Source User ID..."
+              value={sourceUserId}
+              onChange={(e) => setSourceUserId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #444',
+                backgroundColor: '#111',
+                color: '#fff',
+                fontSize: '0.85rem',
+                marginBottom: '15px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                disabled={copyLoading}
+                onClick={handleCopyExamsAndHolidays}
+                style={{ ...modalStyles.btn, flex: 1, backgroundColor: '#1e3438', color: '#00bcd4', borderColor: '#00bcd4' }}
+              >
+                {copyLoading ? 'Importing...' : 'Import'}
+              </button>
+              <button
+                onClick={() => setIsCopyModalOpen(false)}
+                style={{ ...modalStyles.btn, flex: 1, backgroundColor: '#333', color: '#aaa', borderColor: '#555' }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
