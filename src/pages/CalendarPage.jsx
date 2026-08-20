@@ -177,6 +177,67 @@ export default function CalendarPage() {
     }
   };
 
+  // Calculations
+  const calculateTotalWorkingDays = () => {
+    if (!data.semester?.startDate || !data.semester?.endDate) return 0;
+
+    const [sY, sM, sD] = data.semester.startDate.split('-').map(Number);
+    const [eY, eM, eD] = data.semester.endDate.split('-').map(Number);
+
+    const semStart = new Date(sY, sM - 1, sD);
+    const semEnd = new Date(eY, eM - 1, eD);
+
+    let current = new Date(semStart);
+    let count = 0;
+
+    while (current <= semEnd) {
+      const dateStr = formatDateStr(current);
+      const dayOfWeek = current.getDay();
+      const override = data.overrides ? data.overrides[dateStr] : null;
+
+      if (override) {
+        if (override.status === 'WORKING') count++;
+      } else {
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  const calculatePassedWorkingDays = () => {
+    if (!data.semester?.startDate || !data.semester?.endDate) return 0;
+
+    const [sY, sM, sD] = data.semester.startDate.split('-').map(Number);
+    const [eY, eM, eD] = data.semester.endDate.split('-').map(Number);
+
+    const semStart = new Date(sY, sM - 1, sD);
+    const semEnd = new Date(eY, eM - 1, eD);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (today < semStart) return 0;
+
+    let current = new Date(semStart);
+    const limitDate = today <= semEnd ? new Date(today.getTime() - 86400000) : semEnd;
+    let count = 0;
+
+    while (current <= limitDate) {
+      const dateStr = formatDateStr(current);
+      const dayOfWeek = current.getDay();
+      const override = data.overrides ? data.overrides[dateStr] : null;
+
+      if (override) {
+        if (override.status === 'WORKING') count++;
+      } else {
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
   const calculateRemainingWorkingDays = () => {
     if (!data.semester?.startDate || !data.semester?.endDate) return 0;
 
@@ -241,7 +302,7 @@ export default function CalendarPage() {
   const isToday = (dateStr) => formatDateStr(new Date()) === dateStr;
 
   return (
-    <div className="calendar-container">
+    <div className="calendar-container" style={{ paddingBottom: '70px' }}>
       <AuthModal user={user} />
 
       {/* Semester Prompt */}
@@ -351,9 +412,17 @@ export default function CalendarPage() {
         })}
       </div>
 
-      {/* Floating Working Days Counter */}
-      <div className="sticky-footer">
-        <span>📊 Remaining Working Days: <strong style={{ color: '#4CAF50', fontSize: '1.2rem' }}>{calculateRemainingWorkingDays()}</strong></span>
+      {/* Floating Working Days Counter Footer */}
+      <div className="sticky-footer" style={{
+        display: 'flex',
+        justify: 'space-around',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '12px 16px'
+      }}>
+        <span>⏳ Days Passed: <strong style={{ color: '#2196F3', fontSize: '1.2rem' }}>{calculatePassedWorkingDays()}</strong></span>
+        <span>📊 Remaining Days: <strong style={{ color: '#4CAF50', fontSize: '1.2rem' }}>{calculateRemainingWorkingDays()}</strong></span>
+        <span>📅 Total Days: <strong style={{ color: '#ff9800', fontSize: '1.2rem' }}>{calculateTotalWorkingDays()}</strong></span>
       </div>
 
       {/* Status Selection Modal */}

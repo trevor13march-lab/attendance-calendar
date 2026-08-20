@@ -229,3 +229,23 @@
   display: block;
   margin-top: 2px;
 }
+.sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify: space-evenly;
+  align-items: center;
+  background-color: #181818;
+  border-top: 1px solid #333;
+  padding: 12px 0;
+  z-index: 1000;
+}
+
+.sticky-footer > span,
+.sticky-footer > div {
+  flex: 1;
+  text-align: center;
+  font-size: 0.95rem;
+}
