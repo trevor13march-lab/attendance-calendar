@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CalendarPage from './pages/CalendarPage';
 import DashboardPage from './pages/DashboardPage';
+import PredictionPage from './pages/PredictionPage';
 import SettingsPage from './pages/SettingsPage';
 import BottomNav from './components/BottomNav';
 import RoutineSetupModal from './components/RoutineSetupModal';
@@ -13,7 +14,7 @@ export default function App() {
 
   useEffect(() => {
     const { routine } = getStoredData();
-    // If no saved routine exists, prompt first-time onboarding
+
     if (!routine) {
       setIsFirstLaunch(true);
     }
@@ -24,20 +25,27 @@ export default function App() {
   };
 
   return (
-    <div className="app-container" style={{ minHeight: '100vh', backgroundColor: '#121212' }}>
-      {/* First-time onboarding trigger */}
+    <div
+      className="app-container"
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#121212'
+      }}
+    >
       <RoutineSetupModal
         isOpen={isFirstLaunch}
         onComplete={handleRoutineSetupComplete}
       />
 
-      {/* Pages View */}
       {currentPage === 'calendar' && <CalendarPage />}
       {currentPage === 'dashboard' && <DashboardPage />}
+      {currentPage === 'prediction' && <PredictionPage />}
       {currentPage === 'settings' && <SettingsPage />}
 
-      {/* Navigation Bar */}
-      <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      <BottomNav
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+      />
     </div>
   );
 }
