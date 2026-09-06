@@ -3,7 +3,6 @@ import { supabase } from '../supabase';
 import { saveDateOverride, fetchUserOverrides, copyExamsAndHolidaysFromUser } from '../utils/calendarApi';
 import SaturdayRoutineModal from '../components/SaturdayRoutineModal';
 import AuthModal from '../components/AuthModal';
-import CuimsConnectModal from '../components/CuimsConnectModal';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
@@ -20,7 +19,6 @@ export default function CalendarPage() {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [sourceUserId, setSourceUserId] = useState('');
   const [copyLoading, setCopyLoading] = useState(false);
-  const [isCuimsModalOpen, setIsCuimsModalOpen] = useState(false);
 
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -353,23 +351,6 @@ export default function CalendarPage() {
             📋 Import Exams/Holidays
           </button>
         )}
-
-        <button
-          onClick={() => setIsCuimsModalOpen(true)}
-          style={{
-            padding: '8px 12px',
-            backgroundColor: '#1e3438',
-            color: '#00bcd4',
-            border: '1px solid #00bcd4',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '0.8rem',
-            fontWeight: 'bold',
-            height: '38px'
-          }}
-        >
-          Connect to CUIMS
-        </button>
       </div>
 
       {/* Month Navigation */}
@@ -511,12 +492,6 @@ export default function CalendarPage() {
         date={selectedDate}
         onClose={() => setIsSatModalOpen(false)}
         onSelectRoutine={handleSaturdayRoutineSelect}
-      />
-
-      <CuimsConnectModal
-        isOpen={isCuimsModalOpen}
-        onClose={() => setIsCuimsModalOpen(false)}
-        onConnected={() => setIsCuimsModalOpen(false)}
       />
     </div>
   );

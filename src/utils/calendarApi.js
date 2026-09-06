@@ -1,49 +1,63 @@
 import { supabase } from '../supabase';
-import {
-  formatDate as formatDateUtil,
-  getDefaultStatus as getDefaultStatusUtil,
-  fetchUserOverrides as fetchUserOverridesUtil,
-  saveUserOverride as saveUserOverrideUtil,
-  deleteUserOverride as deleteUserOverrideUtil,
-  getDateStatus as getDateStatusUtil,
-  isWorkingDay as isWorkingDayUtil,
-  isOffDay as isOffDayUtil
-} from './calendarUtils.js';
 
-export const formatDate = formatDateUtil;
-export const getDefaultStatus = getDefaultStatusUtil;
-export const fetchUserOverrides = async (userId) =>
-  fetchUserOverridesUtil(userId);
-export const saveUserOverride = saveUserOverrideUtil;
-export const deleteUserOverride = deleteUserOverrideUtil;
-export const getDateStatus = getDateStatusUtil;
-export const isWorkingDay = isWorkingDayUtil;
-export const isOffDay = isOffDayUtil;
+/**
+ * Returns default status for a date based on day of week:
+ * - Mon-Fri: 'WORKING'
+ * - Sat-Sun: 'OFF'
+ */
+export const getDefaultStatus = (dateObj) => {
+  const dayOfWeek = dateObj.getDay();
+  return (dayOfWeek === 0 || dayOfWeek === 6) ? 'OFF' : 'WORKING';
+};
 
-export const saveDateOverride = async (
-  userId,
-  dateStr,
-  status,
-  routineDay = null
-) => {
+/**
+ * Fetch user's date overrides from Supabase
+ */
+export const fetchUserOverrides = async (userId) => {
+  const { data, error } = await supabase
+    .from('calendar_overrides')
+    .select('date, status, routine_day')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching calendar overrides:', error.message);
+    return {};
+  }
+
+  // Convert array to a key-value dictionary { "YYYY-MM-DD": { status, routineDay } }
+  const overrideMap = {};
+  data.forEach((row) => {
+    overrideMap[row.date] = {
+      status: row.status,
+      routineDay: row.routine_day,
+    };
+  });
+
+  return overrideMap;
+};
+
+/**
+ * Save or update a date override for the logged-in user
+ */
+export const saveDateOverride = async (userId, dateStr, status, routineDay = null) => {
   const { error } = await supabase
     .from('calendar_overrides')
-    .upsert(
-      {
-        user_id: userId,
-        date: dateStr,
-        status,
-        routine_day: routineDay,
-        updated_at: new Date()
-      },
-      { onConflict: 'user_id, date' }
-    );
+    .upsert({
+      user_id: userId,
+      date: dateStr,
+      status: status,
+      routine_day: routineDay,
+      updated_at: new Date(),
+    }, { onConflict: 'user_id, date' });
 
   if (error) {
     console.error('Error saving date override:', error.message);
   }
 };
 
+/**
+ * Delete a date override (resets the day to its default status)
+ */
 export const deleteDateOverride = async (userId, dateStr) => {
   const { error } = await supabase
     .from('calendar_overrides')
@@ -55,11 +69,11 @@ export const deleteDateOverride = async (userId, dateStr) => {
     console.error('Error deleting override:', error.message);
   }
 };
-
-export const copyExamsAndHolidaysFromUser = async (
-  targetUserId,
-  sourceUserId
-) => {
+/**
+ * Copy 'EXAM' and 'HOLIDAY' overrides from a source user to the target user
+ */
+export const copyExamsAndHolidaysFromUser = async (targetUserId, sourceUserId) => {
+  // 1. Fetch source user's EXAM and HOLIDAY entries
   const { data: sourceOverrides, error: fetchError } = await supabase
     .from('calendar_overrides')
     .select('date, status, routine_day')
@@ -75,14 +89,16 @@ export const copyExamsAndHolidaysFromUser = async (
     return { success: true, count: 0 };
   }
 
+  // 2. Format payload for target user
   const payload = sourceOverrides.map((row) => ({
     user_id: targetUserId,
     date: row.date,
     status: row.status,
     routine_day: row.routine_day,
-    updated_at: new Date()
+    updated_at: new Date(),
   }));
 
+  // 3. Upsert into database
   const { error: upsertError } = await supabase
     .from('calendar_overrides')
     .upsert(payload, { onConflict: 'user_id, date' });
