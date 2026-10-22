@@ -25,12 +25,48 @@ export default function AuthModal({ user }) {
     await supabase.auth.signOut();
   };
 
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyUserId = async () => {
+    if (!user?.id) return;
+    try {
+      await navigator.clipboard.writeText(user.id);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      prompt('Your User ID:', user.id);
+    }
+  };
+
   if (user) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e1e1e', padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #333' }}>
-        <span style={{ fontSize: '0.85rem', color: '#aaa' }}>
-          Logged in as: <strong style={{ color: '#fff' }}>{user.email}</strong>
-        </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', backgroundColor: '#1e1e1e', padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #333' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.85rem', color: '#aaa' }}>
+            Logged in as: <strong style={{ color: '#fff' }}>{user.email}</strong>
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#121212', padding: '3px 8px', borderRadius: '4px', border: '1px solid #333' }}>
+            <span style={{ fontSize: '0.72rem', color: '#888' }}>User ID:</span>
+            <code style={{ fontSize: '0.75rem', color: '#00bcd4', fontFamily: 'Consolas, monospace' }}>
+              {user.id.slice(0, 8)}...{user.id.slice(-4)}
+            </code>
+            <button
+              onClick={handleCopyUserId}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: copiedId ? '#4CAF50' : '#00bcd4',
+                cursor: 'pointer',
+                fontSize: '0.72rem',
+                padding: '0 4px',
+                fontWeight: 'bold'
+              }}
+              title={user.id}
+            >
+              {copiedId ? '✓ Copied' : '📋 Copy'}
+            </button>
+          </div>
+        </div>
         <button 
           onClick={handleLogout} 
           style={{ background: 'none', border: '1px solid #f44336', color: '#f44336', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}

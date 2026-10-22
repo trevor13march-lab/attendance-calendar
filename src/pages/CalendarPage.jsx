@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { saveDateOverride, fetchUserOverrides, copyExamsAndHolidaysFromUser } from '../utils/calendarApi';
+import { saveDateOverride, fetchUserOverrides } from '../utils/calendarApi';
+import { getStoredData, saveData } from '../utils/storage';
 import SaturdayRoutineModal from '../components/SaturdayRoutineModal';
 import AuthModal from '../components/AuthModal';
+import ShareCalendarModal from '../components/ShareCalendarModal';
+import ImportCalendarModal from '../components/ImportCalendarModal';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
   const [user, setUser] = useState(null);
-  const [data, setData] = useState({ semester: { startDate: '', endDate: '' }, overrides: {} });
+  const stored = getStoredData();
+  const [data, setData] = useState({
+    semester: stored.semester || { startDate: '', endDate: '' },
+    overrides: stored.overrides || {}
+  });
 
   // Modal selection state
   const [selectedDate, setSelectedDate] = useState(null);
@@ -15,10 +22,11 @@ export default function CalendarPage() {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isSatModalOpen, setIsSatModalOpen] = useState(false);
 
-  // Copy modal state
-  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
-  const [sourceUserId, setSourceUserId] = useState('');
-  const [copyLoading, setCopyLoading] = useState(false);
+  // Share & Import modal state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importUrlUserId, setImportUrlUserId] = useState('');
+  const [bannerNotice, setBannerNotice] = useState(null);
 
   const [viewDate, setViewDate] = useState(new Date());
 
@@ -33,7 +41,17 @@ export default function CalendarPage() {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  // 1. Fetch user & listen for auth state changes
+  // 1. Check for shareable URL parameters on initial mount (?import=... or ?import_calendar=...)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const queryUserId = params.get('import') || params.get('import_calendar');
+    if (queryUserId) {
+      setImportUrlUserId(queryUserId);
+      setIsImportModalOpen(true);
+    }
+  }, []);
+
+  // 2. Fetch user & listen for auth state changes
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user || null;
@@ -47,15 +65,19 @@ export default function CalendarPage() {
       if (currentUser) {
         fetchUserData(currentUser.id);
       } else {
-        // Reset to default empty state on logout
-        setData({ semester: { startDate: '', endDate: '' }, overrides: {} });
+        // Fall back to stored local data on logout
+        const local = getStoredData();
+        setData({
+          semester: local.semester || { startDate: '', endDate: '' },
+          overrides: local.overrides || {}
+        });
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Fetch user data from Supabase DB (Semester dates & overrides)
+  // 3. Fetch user data from Supabase DB (Semester dates & overrides)
   const fetchUserData = async (userId) => {
     const { data: userRow, error } = await supabase
       .from('user_data')
@@ -68,17 +90,24 @@ export default function CalendarPage() {
     }
 
     const overrides = await fetchUserOverrides(userId);
-    const semesterData = userRow?.data?.semester || { startDate: '', endDate: '' };
+    const semesterData = userRow?.data?.semester || data.semester || { startDate: '', endDate: '' };
 
-    setData({
+    const mergedData = {
       semester: semesterData,
       overrides: overrides || {}
-    });
+    };
+
+    setData(mergedData);
+    saveData('SEMESTER', mergedData.semester);
+    saveData('OVERRIDES', mergedData.overrides);
   };
 
-  // 3. Save semester dates to Supabase DB (or local state if logged out)
+  // 4. Save semester dates to Supabase DB and local storage
   const saveUserData = async (newData) => {
     setData(newData);
+    saveData('SEMESTER', newData.semester);
+    saveData('OVERRIDES', newData.overrides);
+
     if (user) {
       const { error } = await supabase
         .from('user_data')
@@ -118,7 +147,7 @@ export default function CalendarPage() {
       return;
     }
 
-    // 1. Update local UI state
+    // 1. Update state & localStorage
     const updatedData = {
       ...data,
       overrides: {
@@ -127,6 +156,7 @@ export default function CalendarPage() {
       }
     };
     setData(updatedData);
+    saveData('OVERRIDES', updatedData.overrides);
 
     // 2. Persist override to Supabase calendar_overrides table
     if (user) {
@@ -143,6 +173,7 @@ export default function CalendarPage() {
       }
     };
     setData(updatedData);
+    saveData('OVERRIDES', updatedData.overrides);
 
     if (user) {
       await saveDateOverride(user.id, selectedDate, 'WORKING', assignedRoutine);
@@ -151,30 +182,25 @@ export default function CalendarPage() {
     setIsSatModalOpen(false);
   };
 
-  // Handler to copy Exams & Holidays from another user
-  const handleCopyExamsAndHolidays = async () => {
-    if (!user) {
-      alert('Please log in to import data.');
-      return;
-    }
-    if (!sourceUserId.trim()) {
-      alert('Please enter a valid User ID.');
-      return;
-    }
+  // Callback when a calendar is imported via User ID or JSON file
+  const handleImportSuccess = (newSemester, newOverrides) => {
+    const updated = {
+      semester: newSemester || data.semester,
+      overrides: newOverrides || {}
+    };
 
-    setCopyLoading(true);
-    const result = await copyExamsAndHolidaysFromUser(user.id, sourceUserId.trim());
-    setCopyLoading(false);
+    setData(updated);
+    saveData('SEMESTER', updated.semester);
+    saveData('OVERRIDES', updated.overrides);
 
-    if (result.success) {
-      alert(`Successfully imported ${result.count} exam/holiday entries!`);
-      setIsCopyModalOpen(false);
-      setSourceUserId('');
-      // Refresh local calendar state to display copied items
-      fetchUserData(user.id);
-    } else {
-      alert(`Failed to import data: ${result.error}`);
-    }
+    setBannerNotice({
+      type: 'success',
+      text: '🎉 Calendar successfully imported! Your calendar profile now reflects the shared schedule.'
+    });
+
+    setTimeout(() => {
+      setBannerNotice(null);
+    }, 6000);
   };
 
   // Calculations
@@ -302,55 +328,113 @@ export default function CalendarPage() {
   const isToday = (dateStr) => formatDateStr(new Date()) === dateStr;
 
   return (
-    <div className="calendar-container" style={{ paddingBottom: '70px' }}>
+    <div className="calendar-container" style={{ paddingBottom: '90px' }}>
       <AuthModal user={user} />
+
+      {/* Global Success / Notice Banner */}
+      {bannerNotice && (
+        <div style={{
+          backgroundColor: '#1b5e20',
+          border: '1px solid #4CAF50',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          color: '#e8f5e9',
+          fontSize: '0.9rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          <span>{bannerNotice.text}</span>
+          <button
+            onClick={() => setBannerNotice(null)}
+            style={{ background: 'none', border: 'none', color: '#c8e6c9', cursor: 'pointer', fontSize: '1rem' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Semester Prompt */}
       {(!data.semester?.startDate || !data.semester?.endDate) && (
-        <div style={{ backgroundColor: '#ff980022', border: '1px solid #ff9800', padding: '10px', borderRadius: '6px', marginBottom: '15px', color: '#ffb74d', fontSize: '0.85rem' }}>
+        <div style={{ backgroundColor: '#ff980022', border: '1px solid #ff9800', padding: '10px 14px', borderRadius: '6px', marginBottom: '15px', color: '#ffb74d', fontSize: '0.85rem' }}>
           ⚠️ Please select Semester Start and End dates to calculate remaining working days.
         </div>
       )}
 
-      {/* Semester Inputs & Import Action */}
-      <div className="semester-box" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="date-picker-group">
-          <label className="date-label">Sem Start:</label>
-          <input
-            type="date"
-            value={data.semester?.startDate || ''}
-            onChange={(e) => handleSemesterDateChange('startDate', e.target.value)}
-            className="date-input"
-          />
-        </div>
-        <div className="date-picker-group">
-          <label className="date-label">Sem End:</label>
-          <input
-            type="date"
-            value={data.semester?.endDate || ''}
-            onChange={(e) => handleSemesterDateChange('endDate', e.target.value)}
-            className="date-input"
-          />
+      {/* Semester Inputs & Action Bar */}
+      <div className="semester-box" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto' }}>
+          <div className="date-picker-group">
+            <label className="date-label">Sem Start:</label>
+            <input
+              type="date"
+              value={data.semester?.startDate || ''}
+              onChange={(e) => handleSemesterDateChange('startDate', e.target.value)}
+              className="date-input"
+            />
+          </div>
+          <div className="date-picker-group">
+            <label className="date-label">Sem End:</label>
+            <input
+              type="date"
+              value={data.semester?.endDate || ''}
+              onChange={(e) => handleSemesterDateChange('endDate', e.target.value)}
+              className="date-input"
+            />
+          </div>
         </div>
 
-        {user && (
+        {/* Share & Import Action Buttons */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
-            onClick={() => setIsCopyModalOpen(true)}
+            onClick={() => setIsShareModalOpen(true)}
             style={{
-              padding: '8px 12px',
-              backgroundColor: '#1e3438',
+              padding: '8px 14px',
+              backgroundColor: '#1b2d30',
               color: '#00bcd4',
               border: '1px solid #00bcd4',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '0.8rem',
+              fontSize: '0.82rem',
               fontWeight: 'bold',
-              height: '38px'
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'background 0.2s ease'
             }}
+            title="Export calendar and get your shareable User ID"
           >
-            📋 Import Exams/Holidays
+            <span>📤</span> Share / Export
           </button>
-        )}
+
+          <button
+            onClick={() => {
+              setImportUrlUserId('');
+              setIsImportModalOpen(true);
+            }}
+            style={{
+              padding: '8px 14px',
+              backgroundColor: '#1c2e20',
+              color: '#4CAF50',
+              border: '1px solid #4CAF50',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.82rem',
+              fontWeight: 'bold',
+              height: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'background 0.2s ease'
+            }}
+            title="Import another student's calendar via User ID"
+          >
+            <span>📥</span> Import Calendar
+          </button>
+        </div>
       </div>
 
       {/* Month Navigation */}
@@ -415,7 +499,7 @@ export default function CalendarPage() {
       {/* Floating Working Days Counter Footer */}
       <div className="sticky-footer" style={{
         display: 'flex',
-        justify: 'space-around',
+        justifyContent: 'space-around',
         alignItems: 'center',
         gap: '10px',
         padding: '12px 16px'
@@ -443,49 +527,23 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Copy Exams/Holidays Modal */}
-      {isCopyModalOpen && (
-        <div style={modalStyles.overlay}>
-          <div style={{ ...modalStyles.modal, width: '320px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: '#00bcd4' }}>Import Exams & Holidays</h3>
-            <p style={{ fontSize: '0.8rem', color: '#aaa', marginBottom: '15px' }}>
-              Paste the User ID of the student whose Exam and Holiday schedule you want to copy into your calendar.
-            </p>
-            <input
-              type="text"
-              placeholder="Enter Source User ID..."
-              value={sourceUserId}
-              onChange={(e) => setSourceUserId(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #444',
-                backgroundColor: '#111',
-                color: '#fff',
-                fontSize: '0.85rem',
-                marginBottom: '15px',
-                boxSizing: 'border-box'
-              }}
-            />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                disabled={copyLoading}
-                onClick={handleCopyExamsAndHolidays}
-                style={{ ...modalStyles.btn, flex: 1, backgroundColor: '#1e3438', color: '#00bcd4', borderColor: '#00bcd4' }}
-              >
-                {copyLoading ? 'Importing...' : 'Import'}
-              </button>
-              <button
-                onClick={() => setIsCopyModalOpen(false)}
-                style={{ ...modalStyles.btn, flex: 1, backgroundColor: '#333', color: '#aaa', borderColor: '#555' }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Share / Export Calendar Modal */}
+      <ShareCalendarModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        user={user}
+        semester={data.semester}
+        overrides={data.overrides}
+      />
+
+      {/* Import & Mirror Calendar Modal */}
+      <ImportCalendarModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        targetUser={user}
+        initialUserId={importUrlUserId}
+        onImportSuccess={handleImportSuccess}
+      />
 
       <SaturdayRoutineModal
         isOpen={isSatModalOpen}

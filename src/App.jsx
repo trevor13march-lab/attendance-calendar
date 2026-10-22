@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CalendarPage from './pages/CalendarPage';
 import DashboardPage from './pages/DashboardPage';
+import PredictionPage from './pages/PredictionPage';
 import SettingsPage from './pages/SettingsPage';
 import BottomNav from './components/BottomNav';
 import RoutineSetupModal from './components/RoutineSetupModal';
@@ -34,6 +35,7 @@ export default function App() {
       {/* Pages View */}
       {currentPage === 'calendar' && <CalendarPage />}
       {currentPage === 'dashboard' && <DashboardPage />}
+      {currentPage === 'prediction' && <PredictionPage />}
       {currentPage === 'settings' && <SettingsPage />}
 
       {/* Navigation Bar */}
