@@ -33,7 +33,7 @@ export default function CalendarPage() {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const monthNames = [
@@ -294,6 +294,41 @@ export default function CalendarPage() {
     return count;
   };
 
+  const calculateTotalOffDays = () => {
+    if (!data.semester?.startDate || !data.semester?.endDate) return 0;
+
+    const [sY, sM, sD] = data.semester.startDate.split('-').map(Number);
+    const [eY, eM, eD] = data.semester.endDate.split('-').map(Number);
+
+    const semStart = new Date(sY, sM - 1, sD);
+    const semEnd = new Date(eY, eM - 1, eD);
+
+    let current = new Date(semStart);
+    let count = 0;
+
+    while (current <= semEnd) {
+      const dateStr = formatDateStr(current);
+      const dayOfWeek = current.getDay();
+      const override = data.overrides ? data.overrides[dateStr] : null;
+
+      if (override) {
+        if (override.status === 'OFF' || override.status === 'HOLIDAY' || override.status === 'ABSENT' || override.status === 'MEDICAL_LEAVE') {
+          count++;
+        }
+      } else {
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          count++;
+        }
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  const calculateDaysLeft = () => {
+    return calculateRemainingWorkingDays();
+  };
+
   const getDayInfo = (dayNum) => {
     const dateObj = new Date(year, month, dayNum);
     const dateStr = formatDateStr(dateObj);
@@ -329,7 +364,6 @@ export default function CalendarPage() {
 
   return (
     <div className="calendar-container" style={{ paddingBottom: '90px' }}>
-      <AuthModal user={user} />
 
       {/* Global Success / Notice Banner */}
       {bannerNotice && (
@@ -386,54 +420,58 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Share & Import Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            onClick={() => setIsShareModalOpen(true)}
-            style={{
-              padding: '8px 14px',
-              backgroundColor: '#1b2d30',
-              color: '#00bcd4',
-              border: '1px solid #00bcd4',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.82rem',
-              fontWeight: 'bold',
-              height: '38px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'background 0.2s ease'
-            }}
-            title="Export calendar and get your shareable User ID"
-          >
-            <span>📤</span> Share / Export
-          </button>
+        {/* Share & Import Action Buttons with Profile at the opposite corner */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              style={{
+                padding: '8px 14px',
+                backgroundColor: '#1b2d30',
+                color: '#00bcd4',
+                border: '1px solid #00bcd4',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                fontWeight: 'bold',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'background 0.2s ease'
+              }}
+              title="Export calendar and get your shareable User ID"
+            >
+              <span>📤</span> Share / Export
+            </button>
 
-          <button
-            onClick={() => {
-              setImportUrlUserId('');
-              setIsImportModalOpen(true);
-            }}
-            style={{
-              padding: '8px 14px',
-              backgroundColor: '#1c2e20',
-              color: '#4CAF50',
-              border: '1px solid #4CAF50',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.82rem',
-              fontWeight: 'bold',
-              height: '38px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'background 0.2s ease'
-            }}
-            title="Import another student's calendar via User ID"
-          >
-            <span>📥</span> Import Calendar
-          </button>
+            <button
+              onClick={() => {
+                setImportUrlUserId('');
+                setIsImportModalOpen(true);
+              }}
+              style={{
+                padding: '8px 14px',
+                backgroundColor: '#1c2e20',
+                color: '#4CAF50',
+                border: '1px solid #4CAF50',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                fontWeight: 'bold',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'background 0.2s ease'
+              }}
+              title="Import another student's calendar via User ID"
+            >
+              <span>📥</span> Import Calendar
+            </button>
+          </div>
+
+          <AuthModal user={user} />
         </div>
       </div>
 
@@ -448,7 +486,7 @@ export default function CalendarPage() {
 
       {/* Week Headers */}
       <div className="week-grid">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
           <div key={d} className="week-header-cell">{d}</div>
         ))}
       </div>
@@ -504,9 +542,9 @@ export default function CalendarPage() {
         gap: '10px',
         padding: '12px 16px'
       }}>
-        <span>⏳ Days Passed: <strong style={{ color: '#2196F3', fontSize: '1.2rem' }}>{calculatePassedWorkingDays()}</strong></span>
-        <span>📊 Remaining Days: <strong style={{ color: '#4CAF50', fontSize: '1.2rem' }}>{calculateRemainingWorkingDays()}</strong></span>
-        <span>📅 Total Days: <strong style={{ color: '#ff9800', fontSize: '1.2rem' }}>{calculateTotalWorkingDays()}</strong></span>
+        <span>💼 Total Working Days: <strong style={{ color: '#4CAF50', fontSize: '1.2rem' }}>{calculateTotalWorkingDays()}</strong></span>
+        <span>⏳ Total Days Left: <strong style={{ color: '#2196F3', fontSize: '1.2rem' }}>{calculateDaysLeft()}</strong></span>
+        <span>🏖️ Total Off Days: <strong style={{ color: '#ff9800', fontSize: '1.2rem' }}>{calculateTotalOffDays()}</strong></span>
       </div>
 
       {/* Status Selection Modal */}
