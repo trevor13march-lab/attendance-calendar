@@ -56,6 +56,9 @@ export default function AuthModal({ user }) {
         style={{
           width: '38px',
           height: '38px',
+          minWidth: '38px',
+          maxWidth: '38px',
+          flexShrink: 0,
           borderRadius: '50%',
           backgroundColor: user ? '#007acc' : '#222',
           border: user ? '2px solid #00bcd4' : '1px solid #444',
@@ -68,8 +71,9 @@ export default function AuthModal({ user }) {
           fontSize: user ? '0.95rem' : '1.1rem',
           position: 'relative',
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          transition: 'transform 0.15s ease, border-color 0.2s ease',
-          outline: 'none'
+          transition: 'transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+          outline: 'none',
+          boxSizing: 'border-box'
         }}
         title={user ? `Logged in as: ${user.email}` : 'Sign In / Register'}
         onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
@@ -119,6 +123,7 @@ export default function AuthModal({ user }) {
               borderRadius: '8px',
               padding: '16px',
               width: '290px',
+              maxWidth: 'calc(100vw - 32px)',
               boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
               zIndex: 1002,
               boxSizing: 'border-box',

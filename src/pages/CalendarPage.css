@@ -46,6 +46,75 @@
   box-sizing: border-box;
 }
 
+/* Semester Action Bar & User Profile */
+.semester-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  flex-wrap: nowrap; /* Prevents user profile from wrapping into an extra row */
+}
+
+.semester-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 38px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.semester-action-btn:active {
+  transform: scale(0.97);
+}
+
+.semester-action-btn.share-btn {
+  background-color: #1b2d30;
+  color: #00bcd4;
+  border: 1px solid #00bcd4;
+}
+
+.semester-action-btn.share-btn:hover {
+  background-color: #233e42;
+  box-shadow: 0 0 10px rgba(0, 188, 212, 0.25);
+}
+
+.semester-action-btn.import-btn {
+  background-color: #1c2e20;
+  color: #4CAF50;
+  border: 1px solid #4CAF50;
+}
+
+.semester-action-btn.import-btn:hover {
+  background-color: #24402a;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.25);
+}
+
+.semester-profile-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-label-mobile {
+  display: none;
+}
+
+.btn-label-desktop {
+  display: inline;
+}
+
 /* Header & Navigation */
 .header-row {
   display: flex;
@@ -103,8 +172,8 @@
 .day-cell {
   aspect-ratio: 1 / 1;
   border: 1px solid #333;
-  border-radius: 6px;
-  padding: 4px;
+  border-radius: 8px;
+  padding: 4px 3px 3px 3px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -112,8 +181,14 @@
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
-  transition: transform 0.1s ease, border-color 0.2s ease;
+  transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
+  position: relative;
+}
+
+.day-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .day-cell:active {
@@ -121,32 +196,42 @@
 }
 
 .day-num {
-  font-weight: bold;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.82rem;
   align-self: flex-start;
+  line-height: 1;
+  color: #e0e0e0;
 }
 
 .routine-label {
-  font-size: 0.65rem;
-  color: #ddd;
+  font-size: 0.58rem;
+  color: #bbb;
   text-align: center;
   line-height: 1;
-}
-
-.status-tag {
-  font-size: 0.6rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
 
+.status-tag {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  width: 100%;
+  line-height: 1.1;
+  display: block;
+}
+
 .today-cell {
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 2px #fff !important;
 }
 
 .out-of-range {
@@ -176,76 +261,61 @@
     padding-bottom: 80px;
   }
 
+  .semester-box {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+
+  .semester-actions-row {
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .semester-action-btn {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    gap: 4px;
+    height: 38px;
+  }
+
+  .btn-label-desktop {
+    display: none;
+  }
+
+  .btn-label-mobile {
+    display: inline;
+  }
+
   .week-grid, .month-grid {
     gap: 4px;
   }
 
   .day-cell {
-    padding: 2px;
+    padding: 3px 2px 2px 2px;
+    border-radius: 6px;
   }
 
   .day-num {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
 
   .routine-label {
-    font-size: 0.55rem;
+    font-size: 0.48rem;
   }
 
   .status-tag {
     font-size: 0.5rem;
+    letter-spacing: 0;
+    line-height: 1;
   }
 
   .header-row h2 {
     font-size: 1.1rem;
   }
-}
 
-/* Update the text element class inside your calendar day box */
-.status-text,
-.calendar-day-status {
-  white-space: pre-line !important; /* Converts \n into a physical line break */
-  word-break: break-word !important; /* Prevents overflow */
-  text-overflow: clip !important;    /* Removes trailing '...' */
-  line-height: 1.1 !important;       /* Keeps two lines tightly stacked */
-  text-align: center;
-}
-/* Find the .status-tag class or whatever class handles your status text */
-.status-tag {
-  white-space: pre-wrap;    /* Allows text to wrap to a new line */
-  word-break: break-word;   /* Breaks long words if necessary */
-  line-height: 1.1;         /* Keeps lines tight */
-  text-align: center;
-  font-size: 0.7rem;        /* Slightly smaller to fit two lines */
-  display: block;           /* Ensures it behaves like a block element */
-  margin-top: 2px;
-}
-.status-tag {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.1;
-  text-align: center;
-  font-size: 0.7rem;
-  display: block;
-  margin-top: 2px;
-}
-.sticky-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify: space-evenly;
-  align-items: center;
-  background-color: #181818;
-  border-top: 1px solid #333;
-  padding: 12px 0;
-  z-index: 1000;
-}
-
-.sticky-footer > span,
-.sticky-footer > div {
-  flex: 1;
-  text-align: center;
-  font-size: 0.95rem;
+  .sticky-footer {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
 }

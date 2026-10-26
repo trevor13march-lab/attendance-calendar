@@ -421,57 +421,33 @@ export default function CalendarPage() {
         </div>
 
         {/* Share & Import Action Buttons with Profile at the opposite corner */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              onClick={() => setIsShareModalOpen(true)}
-              style={{
-                padding: '8px 14px',
-                backgroundColor: '#1b2d30',
-                color: '#00bcd4',
-                border: '1px solid #00bcd4',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                fontWeight: 'bold',
-                height: '38px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'background 0.2s ease'
-              }}
-              title="Export calendar and get your shareable User ID"
-            >
-              <span>📤</span> Share / Export
-            </button>
+        <div className="semester-actions-row">
+          <button
+            onClick={() => setIsShareModalOpen(true)}
+            className="semester-action-btn share-btn"
+            title="Export calendar and get your shareable User ID"
+          >
+            <span>📤</span>
+            <span className="btn-label-desktop">Share / Export</span>
+            <span className="btn-label-mobile">Share</span>
+          </button>
 
-            <button
-              onClick={() => {
-                setImportUrlUserId('');
-                setIsImportModalOpen(true);
-              }}
-              style={{
-                padding: '8px 14px',
-                backgroundColor: '#1c2e20',
-                color: '#4CAF50',
-                border: '1px solid #4CAF50',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                fontWeight: 'bold',
-                height: '38px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'background 0.2s ease'
-              }}
-              title="Import another student's calendar via User ID"
-            >
-              <span>📥</span> Import Calendar
-            </button>
+          <button
+            onClick={() => {
+              setImportUrlUserId('');
+              setIsImportModalOpen(true);
+            }}
+            className="semester-action-btn import-btn"
+            title="Import another student's calendar via User ID"
+          >
+            <span>📥</span>
+            <span className="btn-label-desktop">Import Calendar</span>
+            <span className="btn-label-mobile">Import</span>
+          </button>
+
+          <div className="semester-profile-wrapper">
+            <AuthModal user={user} />
           </div>
-
-          <AuthModal user={user} />
         </div>
       </div>
 
@@ -508,11 +484,12 @@ export default function CalendarPage() {
 
           if (isInsideSem) {
             textColor = '#fff';
-            if (status === 'WORKING') { bgColor = '#1e3822'; borderColor = '#4CAF50'; }
-            else if (status === 'OFF' || status === 'HOLIDAY') { bgColor = '#382f1e'; borderColor = '#ff9800'; }
-            else if (status === 'ABSENT') { bgColor = '#381e1e'; borderColor = '#f44336'; }
-            else if (status === 'EXAM') { bgColor = '#1e3438'; borderColor = '#00bcd4'; }
-            else if (status === 'MEDICAL_LEAVE') { bgColor = '#1e2c38'; borderColor = '#2196F3'; }
+            if (status === 'WORKING') { bgColor = '#162e1a'; borderColor = '#4CAF50'; }
+            else if (status === 'OFF') { bgColor = '#2e2010'; borderColor = '#ff9800'; }
+            else if (status === 'HOLIDAY') { bgColor = '#33290c'; borderColor = '#ffc107'; }
+            else if (status === 'ABSENT') { bgColor = '#301414'; borderColor = '#f44336'; }
+            else if (status === 'EXAM') { bgColor = '#10282e'; borderColor = '#00bcd4'; }
+            else if (status === 'MEDICAL_LEAVE') { bgColor = '#122030'; borderColor = '#2196F3'; }
           }
 
           return (
@@ -525,8 +502,8 @@ export default function CalendarPage() {
               <span className="day-num">{dayNum}</span>
               {isInsideSem && label && <span className="routine-label">{label}</span>}
               {isInsideSem && (
-                <span className="status-tag" style={{ color: borderColor }}>
-                  {status === 'MEDICAL_LEAVE' ? 'MEDICAL\nLEAVE' : status.replace('_', ' ')}
+                <span className="status-tag" style={{ color: status === 'HOLIDAY' ? '#ffd54f' : borderColor }}>
+                  {status === 'MEDICAL_LEAVE' ? 'MEDICAL' : status.replace('_', ' ')}
                 </span>
               )}
             </div>
@@ -553,12 +530,12 @@ export default function CalendarPage() {
           <div style={modalStyles.modal}>
             <h3 style={{ margin: '0 0 15px 0', fontSize: '1.05rem' }}>Set Status for {selectedDate}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#1e3822', color: '#4CAF50', borderColor: '#4CAF50' }} onClick={() => applyStatusChange('WORKING')}>Working Day</button>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#382f1e', color: '#ff9800', borderColor: '#ff9800' }} onClick={() => applyStatusChange('OFF')}>Off</button>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#382f1e', color: '#ffb74d', borderColor: '#ffb74d' }} onClick={() => applyStatusChange('HOLIDAY')}>Holiday</button>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#381e1e', color: '#f44336', borderColor: '#f44336' }} onClick={() => applyStatusChange('ABSENT')}>Absent</button>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#1e3438', color: '#00bcd4', borderColor: '#00bcd4' }} onClick={() => applyStatusChange('EXAM')}>Exam</button>
-              <button style={{ ...modalStyles.btn, backgroundColor: '#1e2c38', color: '#2196F3', borderColor: '#2196F3' }} onClick={() => applyStatusChange('MEDICAL_LEAVE')}>Medical Leave</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#162e1a', color: '#4CAF50', borderColor: '#4CAF50' }} onClick={() => applyStatusChange('WORKING')}>Working Day</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#2e2010', color: '#ff9800', borderColor: '#ff9800' }} onClick={() => applyStatusChange('OFF')}>Off</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#33290c', color: '#ffd54f', borderColor: '#ffc107' }} onClick={() => applyStatusChange('HOLIDAY')}>Holiday</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#301414', color: '#f44336', borderColor: '#f44336' }} onClick={() => applyStatusChange('ABSENT')}>Absent</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#10282e', color: '#00bcd4', borderColor: '#00bcd4' }} onClick={() => applyStatusChange('EXAM')}>Exam</button>
+              <button style={{ ...modalStyles.btn, backgroundColor: '#122030', color: '#2196F3', borderColor: '#2196F3' }} onClick={() => applyStatusChange('MEDICAL_LEAVE')}>Medical Leave</button>
             </div>
             <button style={{ ...modalStyles.btn, marginTop: '12px', backgroundColor: '#333', color: '#aaa', borderColor: '#555' }} onClick={() => setIsStatusModalOpen(false)}>Cancel</button>
           </div>
